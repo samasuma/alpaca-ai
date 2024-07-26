@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function () {
   let mediaRecorder;
   let audioChunks = [];
   let recording = false;
+  let lastAnswer = ''; // Variable to store the last answer
 
   // Event listener for startRecordButton click
   startRecordButton.addEventListener('click', function () {
@@ -42,6 +43,8 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(function (response) {
               questionInput.value = response.data.transcript;
               questionInput.placeholder = ''; 
+              // Automatically send the question to the AI after transcription
+              askQuestion(response.data.transcript);
             })
             .catch(function (error) {
               console.error('Error converting speech to text:', error);
@@ -63,7 +66,6 @@ document.addEventListener('DOMContentLoaded', function () {
           }
         }, 5000); // Adjust recording duration as needed
 
-        // Optionally, you can add logic to stop recording when speech pauses using SpeechRecognition API
       })
       .catch(function (error) {
         console.error('Error accessing microphone:', error);
@@ -73,21 +75,33 @@ document.addEventListener('DOMContentLoaded', function () {
     recording = true;
   }
 
-  
-    // Event listener for form submission
-    questionForm.addEventListener('submit', function (event) {
-      event.preventDefault();
-      const question = questionInput.value.trim();
-      if (question !== '') {
-          axios.post('/api/ask-question', { question: question })
-              .then(function (response) {
-                  const answer = response.data.answer;
-                  transcriptionDiv.innerHTML = `<br><strong>AI:</strong> ${answer}`;
-              })
-              .catch(function (error) {
-                  console.error('Error asking question:', error);
-                  transcriptionDiv.textContent = 'Error asking question';
-              });
-      }
-  });
+  // Function to send question and handle AI response
+  function askQuestion(question) {
+    axios.post('/api/ask-question', { question: question })
+      .then(function (response) {
+        const answer = response.data.answer;
+        transcriptionDiv.innerHTML = `<br><strong>AI:</strong> ${answer}`;
+        lastAnswer = answer; // Store the answer for text-to-speech
+        // Automatically convert the answer to speech
+        convertTextToSpeech(answer);
+      })
+      .catch(function (error) {
+        console.error('Error asking question:', error);
+        transcriptionDiv.textContent = 'Error asking question';
+      });
+  }
+
+  // Function to convert text to speech
+  function convertTextToSpeech(text) {
+    axios.post('/api/text-to-speech', { text: text }, { responseType: 'blob' })
+      .then(function (response) {
+        const audioUrl = URL.createObjectURL(response.data);
+        const audio = new Audio(audioUrl);
+        audio.play();
+      })
+      .catch(function (error) {
+        console.error('Error converting text to speech:', error);
+        transcriptionDiv.textContent = 'Error converting text to speech';
+      });
+  }
 });

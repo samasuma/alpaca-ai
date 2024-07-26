@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, send_file
 import os
 from pydub import AudioSegment
 import azure.cognitiveservices.speech as speechsdk
@@ -20,8 +20,6 @@ def speech_to_text():
         # Get audio file from the request
         audio_file = request.files['audio_data']
 
-        #Azure defualt audio streaming format is WAV (16 kHz or 8 kHz, 16-bit, and mono PCM).
-
         # Create a temporary file to save the received audio
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_audio_file:
             audio_file_path = temp_audio_file.name
@@ -30,8 +28,6 @@ def speech_to_text():
         # Convert audio to the required format (16 kHz, 16-bit PCM, mono)
         converted_audio_path = 'converted_audio.wav'
         audio = AudioSegment.from_file(audio_file_path)
-
-        # Convert audio to desired format
         audio = audio.set_frame_rate(16000)  # Set sample rate to 16 kHz
         audio = audio.set_sample_width(2)     # Set sample width to 16-bit
         audio = audio.set_channels(1)         # Set to mono
@@ -45,8 +41,6 @@ def speech_to_text():
 
         # Use the converted audio file
         audio_config = speechsdk.audio.AudioConfig(filename=converted_audio_path)
-
-        # Perform speech recognition
         speech_recognizer = speechsdk.SpeechRecognizer(speech_config=speech_config, audio_config=audio_config)
         result = speech_recognizer.recognize_once()
 
@@ -69,8 +63,6 @@ def speech_to_text():
         if os.path.exists(converted_audio_path):
             os.remove(converted_audio_path)
 
-
-
 @app.route('/api/ask-question', methods=['POST'])
 def ask_question():
     try:
@@ -90,8 +82,42 @@ def ask_question():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/text-to-speech', methods=['POST'])
+def text_to_speech():
+    try:
+        text = request.json.get('text')
+        if not text:
+            return jsonify({'error': 'No text provided'}), 400
 
+        # Configure speech SDK for synthesis
+        speech_key = os.environ.get('SPEECH_KEY')
+        speech_region = os.environ.get('SPEECH_REGION')
+        speech_config = speechsdk.SpeechConfig(subscription=speech_key, region=speech_region)
+        speech_config.speech_synthesis_voice_name = 'sw-KE-ZuriNeural'
 
+        # Create a temporary file to save the synthesized speech
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_audio_file:
+            audio_file_path = temp_audio_file.name
+
+            audio_config = speechsdk.audio.AudioOutputConfig(filename=audio_file_path)
+            speech_synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config, audio_config=audio_config)
+            speech_synthesis_result = speech_synthesizer.speak_text_async(text).get()
+
+            if speech_synthesis_result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
+                return send_file(audio_file_path, mimetype='audio/wav')
+            elif speech_synthesis_result.reason == speechsdk.ResultReason.Canceled:
+                cancellation_details = speech_synthesis_result.cancellation_details
+                return jsonify({'error': f'Speech synthesis canceled: {cancellation_details.reason}'}), 500
+            else:
+                return jsonify({'error': 'Unknown error occurred'}), 500
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+    finally:
+        # Clean up temporary files
+        if os.path.exists(audio_file_path):
+            os.remove(audio_file_path)
 
 if __name__ == '__main__':
     app.run(debug=True)
