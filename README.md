@@ -1,86 +1,132 @@
-# Alpaca Voice Assistant AI 
+# Alpaca AI
 
-A text to speech reminder app 
+## Overview
 
-# Example Workflow
+Alpaca AI is a web application that provides a voice and text-based interface for interacting with an AI-powered system. It features speech-to-text conversion, question processing with OpenAI's GPT-3.5-turbo, and text-to-speech functionality.
 
-1. User Action: User speaks a command like "Today I used my shampoo."
-2. Speech-to-Text: Use Azure Speech Service to convert the spoken command into text.
-3. NLU Processing: Send the text to an NLU API (e.g., Dialogflow, LUIS) to understand the intent ("used shampoo") and extract parameters (timestamp, event description).
-4. Calendar Integration: Use the appropriate calendar API (e.g., Google Calendar API) to create an event with the extracted details.
-Response: Optionally, send a confirmation response to the user through a messaging API or display a confirmation message in the application interface.
+## Workflow
 
+### 1. **User Interaction**
 
-# Workflow for service based ai scheduleing and business knowlege base app 
+- **Start Recording:**
+  - Users initiate audio recording by clicking on the microphone icon.
+  - The app accesses the user's microphone and begins recording audio.
 
-Workflow Overview:
+### 2. **Audio Recording**
 
-    Customer Interaction:
-        Voice or Text Input: Customers contact the business via voice (e.g., phone call or voice message) or text (e.g., SMS, chat).
-        Speech-to-Text Transcription: For voice interactions, convert spoken input to text.
+- **Record Audio:**
+  - The `MediaRecorder` API captures audio from the user's microphone.
+  - Audio data chunks are collected and combined into a single `Blob`.
 
-    Text Interpretation:
-        Natural Language Processing (NLP): Analyze the transcribed text to understand the customer's intent, such as scheduling an appointment, requesting information, or making a complaint.
-        Intent Recognition: Identify the action required (e.g., book an appointment, check availability).
+- **Stop Recording:**
+  - The recording stops automatically after 5 seconds or manually when the user stops it.
 
-    Appointment Scheduling:
-        Check Availability: Query the business's calendar or booking system to check available time slots.
-        Book Appointment: Schedule the appointment based on the customer's preferred time and availability.
+### 3. **Send Audio to Backend**
 
-    Confirmation and Notification:
-        Confirm Appointment: Send confirmation to the customer via their preferred contact method (SMS, email, etc.).
-        Notify Business Owner: Inform the business owner of the new appointment.
+- **Send Audio Data:**
+  - The audio `Blob` is sent to the Flask backend as a form data payload.
 
-    Follow-Up and Reminders:
-        Send Reminders: Automatically send reminders to the customer about the upcoming appointment.
-        Handle Rescheduling or Cancellations: Allow customers to reschedule or cancel appointments if needed.
+### 4. **Speech-to-Text Conversion**
 
-Detailed Workflow Steps:
-1. Customer Interaction
+- **Process Audio:**
+  - The backend saves the audio file as a temporary WAV file and converts it to the required format (16 kHz, 16-bit, mono).
 
-    Voice or Text Input
-        Customers can call the business or send a voice message.
-        Alternatively, they can interact via text (e.g., chat or SMS).
+- **Perform Speech Recognition:**
+  - The Azure Cognitive Services Speech SDK processes the audio file and converts speech to text.
 
-2. Speech-to-Text Transcription (for voice input)
+- **Return Transcript:**
+  - The recognized text (transcript) is returned to the frontend as a JSON response.
 
-    Receive Audio
-        The audio input (voice message) is captured and sent to the server.
+### 5. **Display Transcript**
 
-    Transcribe Audio
-        Use a speech-to-text API (e.g., Azure Speech Service, Google Speech-to-Text) to convert the audio to text.
+- **Update Input Field:**
+  - The transcript is placed into the input field of the form.
 
-3. Text Interpretation
+- **Submit Question:**
+  - Automatically send the transcript as a question to the OpenAI GPT-3.5-turbo API.
 
-    Analyze Text
-        Send the transcribed text (or directly the text input) to an NLP service or model to understand the intent. This could involve:
-            Intent Recognition: Determine if the text is requesting to book an appointment, inquire about services, or something else.
-            Entity Extraction: Extract relevant details such as preferred date, time, and contact information.
+### 6. **Ask Question**
 
-    Determine Action
-        Based on the recognized intent and extracted entities, decide the appropriate action (e.g., booking an appointment).
+- **Send Question:**
+  - The question is sent to OpenAI's GPT-3.5-turbo for processing.
 
-4. Appointment Scheduling
+- **Receive Answer:**
+  - The AI's response is returned to the frontend.
 
-    Check Availability
-        Query the business's calendar or booking system to check for available time slots.
+### 7. **Display AI Answer**
 
-    Book Appointment
-        Based on customer preferences and availability, book the appointment in the system.
+- **Update UI:**
+  - The AI's answer is displayed on the page and saved for text-to-speech conversion.
 
-5. Confirmation and Notification
+### 8. **Text-to-Speech (TTS)**
 
-    Confirm Appointment
-        Generate a confirmation message with the appointment details.
-        Send the confirmation to the customer via their preferred contact method (SMS, email, etc.).
+- **Convert Text to Speech:**
+  - The AI's response is sent to the text-to-speech endpoint.
+  - The backend generates an audio file from the text and returns it to the client.
 
-    Notify Business Owner
-        Send a notification to the business owner or staff about the new appointment.
+- **Play Audio:**
+  - The audio file is played automatically on the client side using the HTML5 Audio API.
 
-6. Follow-Up and Reminders
+## Optimization Suggestions
 
-    Send Reminders
-        Automatically send reminder messages to the customer before the appointment.
+### 1. **Optimize Audio Processing**
 
-    Handle Rescheduling or Cancellations
-        Provide options for customers to reschedule or cancel their appointments if needed.
+- **In-Memory Operations:**
+  - Use in-memory file operations with `io.BytesIO` to reduce disk I/O overhead.
+
+- **Efficient File Management:**
+  - Minimize the number of file writes and deletes to improve performance.
+
+### 2. **Improve Backend Performance**
+
+- **Asynchronous Processing:**
+  - Offload long-running tasks (e.g., text-to-speech) to background workers using tools like Celery or RQ.
+  - Provide endpoints for checking the status of these background tasks.
+
+- **Production WSGI Server:**
+  - Deploy the Flask application using a production WSGI server like Gunicorn or uWSGI to handle concurrent requests more efficiently.
+
+### 3. **Optimize Network Performance**
+
+- **Reduce Latency:**
+  - Host backend services in regions closer to your user base to minimize network latency.
+
+- **Implement Caching:**
+  - Use a CDN to cache static assets and reduce load times for users.
+
+### 4. **Improve Client-Side Performance**
+
+- **Optimize MediaRecorder:**
+  - Ensure the `MediaRecorder` is used efficiently to minimize resource consumption.
+
+- **User Feedback:**
+  - Implement visual indicators (e.g., loading spinners) to improve user experience during delays.
+
+### 5. **Enhance Text-to-Speech Processing**
+
+- **Streaming TTS:**
+  - If available, use streaming TTS APIs to start generating audio while the request is still being processed.
+
+- **Immediate Feedback:**
+  - Provide visual or auditory feedback to users while the TTS conversion is in progress.
+
+### 6. **Monitor and Profile**
+
+- **Performance Monitoring:**
+  - Utilize monitoring tools like New Relic or Datadog to track application performance and identify bottlenecks.
+
+- **Profiling:**
+  - Regularly profile the application to find and optimize slow code paths.
+
+## Getting Started
+
+1. **Setup Environment:**
+   - Install required Python packages: `pip install -r requirements.txt`.
+   - Set up environment variables for OpenAI API key and Azure Speech services.
+
+2. **Run the Application:**
+   - Start the Flask server: `python app.py`.
+
+3. **Access the App:**
+   - Open a web browser and navigate to `http://localhost:5000`.
+
