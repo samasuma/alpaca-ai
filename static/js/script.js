@@ -73,13 +73,21 @@ document.addEventListener('DOMContentLoaded', function () {
     recording = true;
   }
 
-  // Event listener for form submission
-  questionForm.addEventListener('submit', function (event) {
-    event.preventDefault();
-    const question = questionInput.value.trim();
-    if (question !== '') {
-      // Handle form submission for text input (if needed)
-      // Example: Send question to backend and display response
-    }
+  
+    // Event listener for form submission
+    questionForm.addEventListener('submit', function (event) {
+      event.preventDefault();
+      const question = questionInput.value.trim();
+      if (question !== '') {
+          axios.post('/api/ask-question', { question: question })
+              .then(function (response) {
+                  const answer = response.data.answer;
+                  transcriptionDiv.innerHTML = `<br><strong>AI:</strong> ${answer}`;
+              })
+              .catch(function (error) {
+                  console.error('Error asking question:', error);
+                  transcriptionDiv.textContent = 'Error asking question';
+              });
+      }
   });
 });

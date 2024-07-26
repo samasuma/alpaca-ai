@@ -3,6 +3,10 @@ import os
 from pydub import AudioSegment
 import azure.cognitiveservices.speech as speechsdk
 import tempfile
+from openai import OpenAI
+
+# Set OpenAI API key
+client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
 app = Flask(__name__)
 
@@ -17,7 +21,7 @@ def speech_to_text():
         audio_file = request.files['audio_data']
 
         #Azure defualt audio streaming format is WAV (16 kHz or 8 kHz, 16-bit, and mono PCM).
-        
+
         # Create a temporary file to save the received audio
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_audio_file:
             audio_file_path = temp_audio_file.name
@@ -64,6 +68,30 @@ def speech_to_text():
             os.remove(audio_file_path)
         if os.path.exists(converted_audio_path):
             os.remove(converted_audio_path)
+
+
+
+@app.route('/api/ask-question', methods=['POST'])
+def ask_question():
+    try:
+        question = request.json.get('question')
+        if not question:
+            return jsonify({'error': 'No question provided'}), 400
+
+        # Send the question to OpenAI GPT-3.5-turbo
+        response = client.chat.completions.create(model="gpt-3.5-turbo",
+        messages=[
+            {"role": "user", "content": question}
+        ])
+
+        # Extract and return the GPT-3.5-turbo response
+        answer = response.choices[0].message.content
+        return jsonify({'answer': answer})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
