@@ -1,0 +1,45 @@
+/* Ensure proper spacing and alignment */
+#questionForm {
+    display: flex;
+    align-items: center;
+    gap: 4px; /* Minimal spacing between elements */
+}
+
+.uk-input {
+    flex: 1; /* Allow input to grow and fill available space */
+    height: 40px; /* Consistent height */
+    padding: 0 8px; /* Consistent padding */
+    min-width: 400px; /* Make the input field longer */
+}
+
+.uk-button {
+    height: 40px; /* Consistent height */
+    line-height: 40px; /* Vertically center text */
+    font-size: 14px; /* Consistent font size */
+}
+
+#startRecord {
+    padding: 0; /* Remove default padding */
+    background: none; /* No background */
+    border: none; /* No border */
+    color: grey; /* Default color for icon */
+    cursor: pointer; /* Pointer cursor on hover */
+}
+
+#startRecord:hover {
+    color: lightgrey; /* Change icon color when hovered */
+}
+
+#micIcon {
+    font-size: 1.5rem; /* Fixed size for microphone icon */
+}
+
+.uk-button-default {
+    width: 120px; /* Adjust width for the ASK button to be slightly longer */
+    border: 1px solid grey; /* Grey border for ASK button */
+    border-radius: 5px; /* Rounded corners for ASK button */
+}
+
+.uk-button-default:hover {
+    border-color: lightgrey; /* Darker border on hover */
+}
