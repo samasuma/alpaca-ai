@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const questionForm = document.getElementById('questionForm');
   const questionInput = document.getElementById('questionInput');
   const micIcon = document.getElementById('micIcon');
+  const askButton = document.querySelector('button[type="submit"]'); // Reference to the "ASK" button
   let mediaRecorder;
   let audioChunks = [];
   let recording = false;
@@ -13,6 +14,14 @@ document.addEventListener('DOMContentLoaded', function () {
   startRecordButton.addEventListener('click', function () {
     if (!recording) {
       startRecording();
+    }
+  });
+
+  // Event listener for askButton click
+  askButton.addEventListener('click', function (event) {
+    event.preventDefault(); // Prevent form submission
+    if (questionInput.value.trim() !== '') {
+      askQuestion(questionInput.value.trim());
     }
   });
 

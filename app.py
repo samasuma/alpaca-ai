@@ -93,7 +93,7 @@ def text_to_speech():
         speech_key = os.environ.get('SPEECH_KEY')
         speech_region = os.environ.get('SPEECH_REGION')
         speech_config = speechsdk.SpeechConfig(subscription=speech_key, region=speech_region)
-        speech_config.speech_synthesis_voice_name = 'sw-KE-ZuriNeural'
+        speech_config.speech_synthesis_voice_name = 'en-US-AmberNeural'
 
         # Create a temporary file to save the synthesized speech
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_audio_file:
