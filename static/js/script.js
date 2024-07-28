@@ -9,10 +9,12 @@ document.addEventListener('DOMContentLoaded', function () {
   let audioChunks = [];
   let recording = false;
   let lastAnswer = ''; // Variable to store the last answer
+  let currentAudio = null; // Variable to store the currently playing audio
 
   // Event listener for startRecordButton click
   startRecordButton.addEventListener('click', function () {
     if (!recording) {
+      stopCurrentAudio(); // Stop any currently playing audio
       startRecording();
     }
   });
@@ -21,7 +23,10 @@ document.addEventListener('DOMContentLoaded', function () {
   askButton.addEventListener('click', function (event) {
     event.preventDefault(); // Prevent form submission
     if (questionInput.value.trim() !== '') {
+      stopCurrentAudio(); // Stop any currently playing audio
       askQuestion(questionInput.value.trim());
+    } else {
+      console.warn('Question input is empty.');
     }
   });
 
@@ -105,12 +110,27 @@ document.addEventListener('DOMContentLoaded', function () {
     axios.post('/api/text-to-speech', { text: text }, { responseType: 'blob' })
       .then(function (response) {
         const audioUrl = URL.createObjectURL(response.data);
-        const audio = new Audio(audioUrl);
-        audio.play();
+        const newAudio = new Audio(audioUrl);
+
+        // Stop currently playing audio if any
+        stopCurrentAudio();
+
+        newAudio.play();
+        currentAudio = newAudio; // Update reference to the new audio
+
       })
       .catch(function (error) {
         console.error('Error converting text to speech:', error);
         transcriptionDiv.textContent = 'Error converting text to speech';
       });
+  }
+
+  // Function to stop the currently playing audio
+  function stopCurrentAudio() {
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+      currentAudio = null;
+    }
   }
 });
