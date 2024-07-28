@@ -7,6 +7,8 @@ from openai import OpenAI
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import pytz
+from dateutil import parser
+import parsedatetime
 
 # Set OpenAI API key
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
@@ -14,7 +16,7 @@ client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 app = Flask(__name__)
 
 # Configure SQLite database
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chat_history.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app_data.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -28,6 +30,19 @@ class Chat(db.Model):
 
     def __repr__(self):
         return f'<Chat {self.id}>'
+
+# Define the ReminderOrEvent model
+class ReminderOrEvent(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String, nullable=False)
+    description = db.Column(db.Text)
+    start_time = db.Column(db.DateTime)
+    end_time = db.Column(db.DateTime)
+    is_reminder = db.Column(db.Boolean, default=False)  # True if it's a reminder
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'<ReminderOrEvent {self.title}>'
 
 # Create the database tables
 with app.app_context():
@@ -47,9 +62,9 @@ def speech_to_text():
 
         converted_audio_path = 'converted_audio.wav'
         audio = AudioSegment.from_file(audio_file_path)
-        audio = audio.set_frame_rate(16000)  
-        audio = audio.set_sample_width(2)     
-        audio = audio.set_channels(1)         
+        audio = audio.set_frame_rate(16000)
+        audio = audio.set_sample_width(2)
+        audio = audio.set_channels(1)
         audio.export(converted_audio_path, format='wav')
 
         speech_key = os.environ.get('SPEECH_KEY')
@@ -98,7 +113,7 @@ def ask_question():
             "role": "system",
             "content": "You are a helpful, mindful, and cheerful assistant here to assist users with their daily needs. Provide responses that are positive and supportive."
         }
-        
+
         # Add current user message to history
         messages.append({"role": "user", "content": user_message})
 
@@ -119,10 +134,52 @@ def ask_question():
         db.session.add(chat)
         db.session.commit()
 
+        # Handle reminders and events dynamically
+        if "remind" in user_message.lower() or "appointment" in user_message.lower():
+            if "delete" in user_message.lower() or "remove" in user_message.lower():
+                event_id = extract_event_id(user_message)
+                if event_id:
+                    event = ReminderOrEvent.query.get(event_id)
+                    if event:
+                        db.session.delete(event)
+                        db.session.commit()
+                        assistant_response = f"Reminder/Event with ID {event_id} has been deleted."
+                    else:
+                        assistant_response = f"No reminder/event found with ID {event_id}."
+                else:
+                    assistant_response = "Could not determine the event ID to delete."
+            elif "update" in user_message.lower():
+                event_id = extract_event_id(user_message)
+                new_title = extract_new_title(user_message)
+                if event_id and new_title:
+                    event = ReminderOrEvent.query.get(event_id)
+                    if event:
+                        event.title = new_title
+                        db.session.commit()
+                        assistant_response = f"Reminder/Event with ID {event_id} has been updated."
+                    else:
+                        assistant_response = f"No reminder/event found with ID {event_id}."
+                else:
+                    assistant_response = "Could not determine the event ID or new title for update."
+            else:
+                # Extract title and date/time from user_message
+                title = user_message
+                start_time = parse_date_time(user_message)  # You may want to extract this more precisely
+                end_time = None
+                is_reminder = "remind" in user_message.lower()
+                reminder_or_event = ReminderOrEvent(
+                    title=title,
+                    description=assistant_response,
+                    start_time=start_time,
+                    end_time=end_time,
+                    is_reminder=is_reminder
+                )
+                db.session.add(reminder_or_event)
+                db.session.commit()
+
         return jsonify({'answer': assistant_response})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
 
 @app.route('/api/text-to-speech', methods=['POST'])
 def text_to_speech():
@@ -157,6 +214,72 @@ def text_to_speech():
     finally:
         if os.path.exists(audio_file_path):
             os.remove(audio_file_path)
+
+@app.route('/api/get-reminders-and-events', methods=['GET'])
+def get_reminders_and_events():
+    events = ReminderOrEvent.query.order_by(ReminderOrEvent.start_time).all()
+    event_list = [
+        {
+            'id': event.id,
+            'title': event.title,
+            'description': event.description,
+            'start_time': event.start_time.isoformat() if event.start_time else None,
+            'end_time': event.end_time.isoformat() if event.end_time else None,
+            'is_reminder': event.is_reminder,
+            'created_at': event.created_at.isoformat()
+        } for event in events
+    ]
+    return jsonify({'events': event_list})
+
+@app.route('/api/delete-event/<int:event_id>', methods=['DELETE'])
+def delete_event(event_id):
+    event = ReminderOrEvent.query.get(event_id)
+    if event:
+        db.session.delete(event)
+        db.session.commit()
+        return jsonify({'message': f'Event with ID {event_id} deleted successfully.'})
+    else:
+        return jsonify({'error': 'Event not found'}), 404
+
+@app.route('/api/update-event/<int:event_id>', methods=['PUT'])
+def update_event(event_id):
+    data = request.json
+    event = ReminderOrEvent.query.get(event_id)
+    if event:
+        if 'title' in data:
+            event.title = data['title']
+        if 'description' in data:
+            event.description = data['description']
+        if 'start_time' in data:
+            event.start_time = parser.parse(data['start_time'])
+        if 'end_time' in data:
+            event.end_time = parser.parse(data['end_time'])
+        if 'is_reminder' in data:
+            event.is_reminder = data['is_reminder']
+        db.session.commit()
+        return jsonify({'message': f'Event with ID {event_id} updated successfully.'})
+    else:
+        return jsonify({'error': 'Event not found'}), 404
+
+# Utility functions
+def parse_date_time(text):
+    cal = parsedatetime.Calendar()
+    time_struct, _ = cal.parse(text)
+    return datetime(*time_struct[:6]) if time_struct else None
+
+def extract_event_id(text):
+    # Placeholder for extracting event ID from user message
+    # Assume the ID follows 'ID:' or 'event ID:'
+    import re
+    match = re.search(r'\bID\s*[:-]\s*(\d+)\b', text, re.IGNORECASE)
+    return int(match.group(1)) if match else None
+
+def extract_new_title(text):
+    # Placeholder for extracting new title from user message
+    # This is a simple example; you might need more sophisticated parsing
+    import re
+    match = re.search(r'update\s*title\s*[:-]\s*(.*)', text, re.IGNORECASE)
+    return match.group(1).strip() if match else None
 
 if __name__ == '__main__':
     app.run(debug=True)
