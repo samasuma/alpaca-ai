@@ -4,11 +4,34 @@ from pydub import AudioSegment
 import azure.cognitiveservices.speech as speechsdk
 import tempfile
 from openai import OpenAI
+from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
+import pytz
 
 # Set OpenAI API key
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
 app = Flask(__name__)
+
+# Configure SQLite database
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///chat_history.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
+
+# Define the Chat model
+class Chat(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_message = db.Column(db.String, nullable=False)
+    assistant_response = db.Column(db.Text, nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.now(pytz.utc))
+
+    def __repr__(self):
+        return f'<Chat {self.id}>'
+
+# Create the database tables
+with app.app_context():
+    db.create_all()
 
 @app.route('/')
 def index():
@@ -17,29 +40,23 @@ def index():
 @app.route('/api/speech-to-text', methods=['POST'])
 def speech_to_text():
     try:
-        # Get audio file from the request
         audio_file = request.files['audio_data']
-
-        # Create a temporary file to save the received audio
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_audio_file:
             audio_file_path = temp_audio_file.name
             audio_file.save(audio_file_path)
 
-        # Convert audio to the required format (16 kHz, 16-bit PCM, mono)
         converted_audio_path = 'converted_audio.wav'
         audio = AudioSegment.from_file(audio_file_path)
-        audio = audio.set_frame_rate(16000)  # Set sample rate to 16 kHz
-        audio = audio.set_sample_width(2)     # Set sample width to 16-bit
-        audio = audio.set_channels(1)         # Set to mono
+        audio = audio.set_frame_rate(16000)  
+        audio = audio.set_sample_width(2)     
+        audio = audio.set_channels(1)         
         audio.export(converted_audio_path, format='wav')
 
-        # Configure speech SDK
         speech_key = os.environ.get('SPEECH_KEY')
         speech_region = os.environ.get('SPEECH_REGION')
         speech_config = speechsdk.SpeechConfig(subscription=speech_key, region=speech_region)
         speech_config.speech_recognition_language = "en-US"
 
-        # Use the converted audio file
         audio_config = speechsdk.audio.AudioConfig(filename=converted_audio_path)
         speech_recognizer = speechsdk.SpeechRecognizer(speech_config=speech_config, audio_config=audio_config)
         result = speech_recognizer.recognize_once()
@@ -57,7 +74,6 @@ def speech_to_text():
         return jsonify({'error': str(e)}), 500
 
     finally:
-        # Clean up temporary files
         if os.path.exists(audio_file_path):
             os.remove(audio_file_path)
         if os.path.exists(converted_audio_path):
@@ -66,21 +82,47 @@ def speech_to_text():
 @app.route('/api/ask-question', methods=['POST'])
 def ask_question():
     try:
-        question = request.json.get('question')
-        if not question:
+        user_message = request.json.get('question')
+        if not user_message:
             return jsonify({'error': 'No question provided'}), 400
 
-        # Send the question to OpenAI GPT-3.5-turbo
-        response = client.chat.completions.create(model="gpt-3.5-turbo",
-        messages=[
-            {"role": "user", "content": question}
-        ])
+        # Retrieve chat history with timestamps
+        history = Chat.query.order_by(Chat.timestamp).all()
+        messages = [
+            {"role": "user", "content": f"{chat.user_message} (Asked on: {chat.timestamp.strftime('%Y-%m-%d %A %H:%M:%S %Z')} UTC)"}
+            for chat in history
+        ]
 
-        # Extract and return the GPT-3.5-turbo response
-        answer = response.choices[0].message.content
-        return jsonify({'answer': answer})
+        # Add a system message to set the assistant's tone
+        system_message = {
+            "role": "system",
+            "content": "You are a helpful, mindful, and cheerful assistant here to assist users with their daily needs. Provide responses that are positive and supportive."
+        }
+        
+        # Add current user message to history
+        messages.append({"role": "user", "content": user_message})
+
+        # Include the system message in the context
+        messages = [system_message] + messages
+
+        # Send the question to OpenAI GPT-3.5-turbo
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=messages,
+            max_tokens=150
+        )
+
+        assistant_response = response.choices[0].message.content
+
+        # Save the chat history to the database
+        chat = Chat(user_message=user_message, assistant_response=assistant_response)
+        db.session.add(chat)
+        db.session.commit()
+
+        return jsonify({'answer': assistant_response})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/text-to-speech', methods=['POST'])
 def text_to_speech():
@@ -89,13 +131,11 @@ def text_to_speech():
         if not text:
             return jsonify({'error': 'No text provided'}), 400
 
-        # Configure speech SDK for synthesis
         speech_key = os.environ.get('SPEECH_KEY')
         speech_region = os.environ.get('SPEECH_REGION')
         speech_config = speechsdk.SpeechConfig(subscription=speech_key, region=speech_region)
         speech_config.speech_synthesis_voice_name = 'en-US-AmberNeural'
 
-        # Create a temporary file to save the synthesized speech
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_audio_file:
             audio_file_path = temp_audio_file.name
 
@@ -115,7 +155,6 @@ def text_to_speech():
         return jsonify({'error': str(e)}), 500
 
     finally:
-        # Clean up temporary files
         if os.path.exists(audio_file_path):
             os.remove(audio_file_path)
 
