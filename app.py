@@ -1,19 +1,23 @@
-from flask import Flask, render_template, jsonify, request, send_file
-import os
+from flask import Flask, render_template, jsonify, request, send_file, session
+import firebase_admin
+from firebase_admin import credentials, auth
 from pydub import AudioSegment
 import azure.cognitiveservices.speech as speechsdk
 import tempfile
 from openai import OpenAI
-from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
-import pytz
-from dateutil import parser
-from models import db, Chat  # Import db and models from models.py
+from models import db, Chat, User
+from werkzeug.security import generate_password_hash, check_password_hash
+import os
+
+# Initialize Firebase Admin SDK
+cred = credentials.Certificate(os.getenv('GOOGLE_APPLICATION_CREDENTIALS'))
+firebase_admin.initialize_app(cred)
 
 # Set OpenAI API key
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
 app = Flask(__name__)
+app.secret_key = os.getenv('SECRET_KEY')  # Set a secret key for session management
 
 # Configure SQLite database
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app_data.db'
@@ -29,6 +33,70 @@ with app.app_context():
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/api/register', methods=['POST'])
+def register():
+    data = request.json
+    email = data.get('email')
+    password = data.get('password')
+
+    if not (email and password):
+        return jsonify({'error': 'Email and password are required'}), 400
+
+    try:
+        # Check if user already exists
+        try:
+            user = auth.get_user_by_email(email)
+            return jsonify({'error': 'Email already in use'}), 400
+        except auth.UserNotFoundError:
+            # User does not exist, proceed with registration
+            pass
+
+        # Create a new user with Firebase
+        user = auth.create_user(email=email, password=password)
+        user_id = user.uid
+
+        # Create local user record
+        hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
+        new_user = User(username=email, email=email, password=hashed_password)
+        
+        db.session.add(new_user)
+        db.session.commit()
+
+        return jsonify({'message': 'User registered successfully'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    data = request.json
+    email = data.get('email')
+    password = data.get('password')
+
+    if not (email and password):
+        return jsonify({'error': 'Email and password are required'}), 400
+
+    try:
+        # Verify the user with Firebase
+        user = auth.get_user_by_email(email)
+        if not user:
+            return jsonify({'error': 'Invalid email or password'}), 401
+
+        # Verify the password locally
+        local_user = User.query.filter_by(email=email).first()
+        if local_user and check_password_hash(local_user.password, password):
+            session['user_id'] = local_user.id
+            return jsonify({'message': 'Login successful'})
+        else:
+            return jsonify({'error': 'Invalid email or password'}), 401
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/logout', methods=['POST'])
+def logout():
+    session.pop('user_id', None)
+    return jsonify({'message': 'Logged out successfully'})
 
 @app.route('/api/speech-to-text', methods=['POST'])
 def speech_to_text():
@@ -75,12 +143,16 @@ def speech_to_text():
 @app.route('/api/ask-question', methods=['POST'])
 def ask_question():
     try:
+        user_id = session.get('user_id')
+        if not user_id:
+            return jsonify({'error': 'User not logged in'}), 401
+        
         user_message = request.json.get('question')
         if not user_message:
             return jsonify({'error': 'No question provided'}), 400
 
-        # Retrieve chat history with timestamps
-        history = Chat.query.order_by(Chat.timestamp).all()
+        # Retrieve chat history with timestamps for the current user
+        history = Chat.query.filter_by(user_id=user_id).order_by(Chat.timestamp).all()
         messages = [
             {"role": "user", "content": f"{chat.user_message} (Asked on: {chat.timestamp.strftime('%Y-%m-%d %A %H:%M:%S %Z')} UTC)"}
             for chat in history
@@ -108,7 +180,7 @@ def ask_question():
         assistant_response = response.choices[0].message.content
 
         # Save the chat history to the database
-        chat = Chat(user_message=user_message, assistant_response=assistant_response)
+        chat = Chat(user_message=user_message, assistant_response=assistant_response, user_id=user_id)
         db.session.add(chat)
         db.session.commit()
 
@@ -152,7 +224,11 @@ def text_to_speech():
 
 @app.route('/api/get-chats', methods=['GET'])
 def get_chats():
-    chats = Chat.query.order_by(Chat.timestamp).all()
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'User not logged in'}), 401
+    
+    chats = Chat.query.filter_by(user_id=user_id).order_by(Chat.timestamp).all()
     chat_list = [
         {
             'id': chat.id,
