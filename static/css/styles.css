@@ -1,18 +1,26 @@
-/* Ensure proper spacing and alignment */
+
+
+footer {
+    text-align: center;
+    padding: 2px;
+}
+
+
+/* General Styles */
 #questionForm {
     display: flex;
     align-items: center;
-    gap: 4px; /* Minimal spacing between elements */
+    gap: 1px; /* Minimal spacing between elements */
 }
 
-.uk-input {
+#questionForm .uk-input {
     flex: 1; /* Allow input to grow and fill available space */
     height: 40px; /* Consistent height */
     padding: 0 8px; /* Consistent padding */
     min-width: 400px; /* Make the input field longer */
 }
 
-.uk-button {
+#questionForm .uk-button {
     height: 40px; /* Consistent height */
     line-height: 40px; /* Vertically center text */
     font-size: 14px; /* Consistent font size */
@@ -25,6 +33,29 @@
     color: grey; /* Default color for icon */
     cursor: pointer; /* Pointer cursor on hover */
 }
+
+
+/* Scoped CSS for form container */
+.form-container .uk-inline {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  
+  .form-container .uk-input {
+    padding-right: 50px; /* Ensure this value is sufficient to accommodate the button */
+  }
+  
+  .form-container .uk-button.uk-form-icon {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    border: none;
+    background: transparent;
+    cursor: pointer; /* Ensures it is clickable */
+  }
+  
 
 #startRecord:hover {
     color: lightgrey; /* Change icon color when hovered */
@@ -46,7 +77,7 @@
 
 /* Styles for login/register popup */
 .login-popup {
-    display: none;
+    display: none; /* Hidden by default */
     position: fixed;
     top: 50%;
     left: 50%;
@@ -56,13 +87,81 @@
     border: 1px solid #ccc;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     z-index: 1000;
+    width: 20%;
+    max-height: 80vh;
+    box-sizing: border-box;
+    display: flex; /* Flexbox layout for centering contents */
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.login-popup h2{
+    text-align: center;
 }
 
-.login-popup input {
-    margin-bottom: 10px;
+.login-popup .uk-inline {
+    width: 100%; /* Make inline elements span full width */
+    margin-bottom: 15px; /* Space between form fields */
 }
 
-/* User profile container */
+.login-popup .uk-input {
+    width: 100%; /* Match the width of the buttons */
+    box-sizing: border-box; /* Include padding and border in the width */
+}
+
+.login-popup .uk-button {
+    width: 100%; /* Full width for buttons */
+    box-sizing: border-box; /* Include padding and border in the width */
+    margin-bottom: 10px; /* Space below buttons */
+}
+
+
+/* Close button styling */
+.login-popup #closePopup {
+    position: absolute;
+    top: 10px; /* Distance from the top of the popup */
+    right: 10px; /* Distance from the right edge of the popup */
+    background: none; /* Remove default background */
+    border: none; /* Remove default border */
+    cursor: pointer; /* Pointer cursor on hover */
+}
+
+/* Optional: Responsive adjustment */
+@media (max-width: 600px) {
+    .login-popup {
+        width: 90%; /* Make popup wider on smaller screens */
+    }
+}
+
+/* Button Container Styles */
+.uk-button-primary, .uk-button-secondary {
+    width: 100%; /* Ensure buttons span full width */
+    border: none;
+    border-radius: 5px;
+}
+
+/* Ensure switch button styles are consistent */
+.uk-button-secondary.uk-margin-top {
+    width: 100%;
+    border: none;
+    border-radius: 5px;
+}
+
+
+/* Hide blur background by default */
+#backgroundBlur,
+.blur-background {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: 999;
+}
+
 #userProfile {
     display: flex;
     flex-direction: column; /* Stack items vertically */
@@ -73,24 +172,36 @@
     right: 10px;
 }
 
-/* Username display */
 .username-display {
     font-size: 16px;
     font-weight: bold;
 }
 
-/* Logout button */
-#logoutButton {
-    background-color: #f44336; /* Red background */
+.uk-icon-button {
+    background-color:black; /* Blue background */
     color: white; /* White text */
     border: none; /* Remove default border */
     border-radius: 5px; /* Rounded corners */
-    padding: 5px 10px; /* Padding for better click area */
+    padding: 10px; /* Padding for better click area */
     cursor: pointer; /* Pointer cursor on hover */
-    font-size: 14px; /* Consistent font size */
+    font-size: 18px; /* Font size for icons */
 }
 
-#logoutButton:hover {
-    background-color: #d32f2f; /* Darker red on hover */
+
+#loginButton {
+    display: block; /* Show login button by default */
 }
 
+#logoutButton {
+    display: none; /* Hide logout button by default */
+}
+
+
+.call-to-action a {
+    color: #007bff;
+    text-decoration: underline;
+}
+
+.call-to-action a:hover {
+    color: #0056b3;
+}

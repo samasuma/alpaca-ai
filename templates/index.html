@@ -5,20 +5,22 @@
   <title>Alpaca Reminder AI</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uikit@3.6.22/dist/css/uikit.min.css">
-  <link rel="stylesheet" href="/static/css/styles.css"> <!-- Link to the external CSS file -->
+  <link rel="stylesheet" href="/static/css/styles.css">
 </head>
 
 <body>
 
+  <!-- Main content -->
+  <div class="main-content">
   <div class="uk-section uk-section-large uk-height-viewport">
     <div class="uk-container uk-text-center uk-padding-large">
       <h1 class="uk-heading-medium"><strong>Alpaca</strong> AI</h1>
       <p class="uk-text-lead">An AI-powered app for everything!</p>
     </div>
+
+      <!-- AI Prompt Input content -->
     <div class="uk-container uk-text-center">
-      <!-- Flex container with max-width -->
       <div class="form-container uk-flex uk-flex-middle uk-flex-center uk-margin">
-        <!-- Question Form with Microphone Icon -->
         <form id="questionForm" class="uk-flex uk-flex-middle">
           <input id="questionInput" class="uk-input uk-margin-small-right" type="text" placeholder="Type your question...">
           <button id="startRecord" class="uk-button uk-button-primary uk-margin-small-right" type="button">
@@ -32,6 +34,68 @@
     <div class="uk-container uk-text-center uk-padding">
       <div id="answer" class="uk-flex uk-flex-center uk-flex-middle uk-padding uk-width-expand"></div>
     </div>
+  </div>
+
+  <!-- Popup Background Blur -->
+  <div id="backgroundBlur" class="blur-background"></div>
+
+<!-- Popup HTML -->
+<div id="loginPopup" class="login-popup">
+  <button id="closePopup" class="uk-close" type="button" uk-close></button>
+  <h2>Login/Register</h2>
+  
+  <!-- Login Form -->
+  <form id="loginForm" style="display:block;">
+    <div class="uk-inline">
+      <span class="uk-form-icon" uk-icon="icon: user"></span>
+      <input id="loginEmail" class="uk-input" type="email" placeholder="Email" required>
+    </div>
+    <div class="uk-inline">
+      <span class="uk-form-icon" uk-icon="icon: lock"></span>
+      <input id="loginPassword" class="uk-input" type="password" placeholder="Password" required>
+    </div>
+    <button type="submit" class="uk-button uk-button-primary">Login</button>
+  </form>
+  
+  <!-- Registration Form -->
+  <form id="registerForm" style="display:none;">
+    <div class="uk-inline">
+      <span class="uk-form-icon" uk-icon="icon: user"></span>
+      <input id="registerEmail" class="uk-input" type="email" placeholder="Email" required>
+    </div>
+    <div class="uk-inline">
+      <span class="uk-form-icon" uk-icon="icon: lock"></span>
+      <input id="registerPassword" class="uk-input" type="password" placeholder="Password" required>
+    </div>
+    <button type="submit" class="uk-button uk-button-primary">Sign Up</button>
+  </form>
+  
+  <button id="toggleForm" class="uk-button uk-button-secondary">Switch to Sign Up</button>
+</div>
+
+
+
+  <!-- User Profile -->
+  <div id="userProfile">
+    <div id="usernameDisplay" class="username-display"></div> 
+    <button id="logoutButton" class="uk-icon-button uk-button-default" uk-icon="sign-out">Logout </button>
+    <button id="loginButton" style="display:none;" class="uk-icon-button uk-button-default" uk-icon="sign-in">Login </button>
+  </div>
+
+ 
+  <footer id="callToAction" class="call-to-action" >
+      <p>Enjoying the app? <a href="#" id="openLoginPopup">Sign up or Login</a> to save your history and get personalized recommendations!</p>
+  </footer>
+
+
+  <!-- Call to Action Footer 
+  <footer class="uk-section uk-section-muted">
+    <div class="uk-container uk-text-center">
+      <div id="callToAction" class="call-to-action">
+        <p>Enjoying the app? <a href="#" id="openLoginPopup">Sign up or Login</a> to save your history and get personalized recommendations!</p>
+      </div>
+    </div>
+  </footer> -->
   </div>
 
   <script src="https://unpkg.com/axios/dist/axios.min.js"></script>

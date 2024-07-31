@@ -4,13 +4,14 @@ document.addEventListener('DOMContentLoaded', function () {
   const questionForm = document.getElementById('questionForm');
   const questionInput = document.getElementById('questionInput');
   const micIcon = document.getElementById('micIcon');
- // Select the submit button within the questionForm
-const askButton = document.querySelector('#questionForm button[type="submit"]');
-
+  const askButton = document.querySelector('#questionForm button[type="submit"]');
   const loginPopup = document.getElementById('loginPopup');
   const closePopupButton = document.getElementById('closePopup');
   const toggleFormButton = document.getElementById('toggleForm');
   const usernameDisplay = document.getElementById('usernameDisplay');
+  const blurBackground = document.querySelector('.blur-background');
+  const logoutButton = document.getElementById('logoutButton');
+  const openLoginPopupLink = document.getElementById('openLoginPopup');
   
   let mediaRecorder;
   let audioChunks = [];
@@ -18,29 +19,64 @@ const askButton = document.querySelector('#questionForm button[type="submit"]');
   let lastAnswer = '';
   let currentAudio = null;
 
-  // Login popup logic 
 
-  // Event listener for login/register popup
-  document.getElementById('loginPopup').style.display = 'block';
+  // Set initial visibility of buttons
+  function setInitialButtonVisibility() {
+    // This should ideally be based on actual login status; hardcoded for now
+    const isLoggedIn = false; // Set to `true` if the user is logged in
 
-  closePopupButton.addEventListener('click', function () {
+    if (isLoggedIn) {
+        loginButton.style.display = 'none';
+        logoutButton.style.display = 'block';
+    } else {
+        loginButton.style.display = 'block';
+        logoutButton.style.display = 'none';
+    }
+}
+
+// Initialize the visibility of the login/logout buttons
+setInitialButtonVisibility();
+
+
+  // Show login/register popup and background blur
+  loginPopup.style.display = 'flex';
+  blurBackground.style.display = 'block';
+
+
+  // Close popup by clicking outside
+  blurBackground.addEventListener('click', function () {
     loginPopup.style.display = 'none';
+    blurBackground.style.display = 'none';
   });
 
+  // Close popup button
+  closePopupButton.addEventListener('click', function () {
+    loginPopup.style.display = 'none';
+    blurBackground.style.display = 'none';
+  });
+
+    // Event listener for login button
+    loginButton.addEventListener('click', function () {
+      loginPopup.style.display = 'block';
+      blurBackground.style.display = 'block'; // Show background blur
+    });
+
+  // Toggle between login and register forms
   toggleFormButton.addEventListener('click', function () {
     const loginForm = document.getElementById('loginForm');
     const registerForm = document.getElementById('registerForm');
     if (loginForm.style.display === 'none') {
       loginForm.style.display = 'block';
       registerForm.style.display = 'none';
-      toggleFormButton.textContent = 'Register';
+      toggleFormButton.textContent = 'Switch to Sign Up';
     } else {
       loginForm.style.display = 'none';
       registerForm.style.display = 'block';
-      toggleFormButton.textContent = 'Login';
+      toggleFormButton.textContent = 'Switch to Login';
     }
   });
 
+  // Handle login form submission
   document.getElementById('loginForm').addEventListener('submit', function (event) {
     event.preventDefault();
     const email = document.getElementById('loginEmail').value;
@@ -49,13 +85,17 @@ const askButton = document.querySelector('#questionForm button[type="submit"]');
     axios.post('/api/login', { email, password })
       .then(function (response) {
         loginPopup.style.display = 'none';
+        blurBackground.style.display = 'none';
         usernameDisplay.textContent = `Logged in as ${email}`;
+        logoutButton.style.display = 'block';
+        loginButton.style.display = 'none';
       })
       .catch(function (error) {
         console.error('Login failed:', error);
       });
   });
 
+  // Handle registration form submission
   document.getElementById('registerForm').addEventListener('submit', function (event) {
     event.preventDefault();
     const email = document.getElementById('registerEmail').value;
@@ -72,7 +112,7 @@ const askButton = document.querySelector('#questionForm button[type="submit"]');
       });
   });
 
-  // Event listener for startRecordButton click
+  // Handle start record button click
   startRecordButton.addEventListener('click', function () {
     if (!recording) {
       stopCurrentAudio();
@@ -80,11 +120,7 @@ const askButton = document.querySelector('#questionForm button[type="submit"]');
     }
   });
 
-
-  // Main app logic
-
-
-  // Event listener for askButton click
+  // Handle ask button click
   askButton.addEventListener('click', function (event) {
     event.preventDefault();
     if (questionInput.value.trim() !== '') {
@@ -95,21 +131,24 @@ const askButton = document.querySelector('#questionForm button[type="submit"]');
     }
   });
 
-      // Event listener for logoutButton click
-      logoutButton.addEventListener('click', function () {
-        axios.post('/api/logout')
-          .then(function () {
-            // Clear user info from UI
-            usernameDisplay.textContent = '';
-            // Optionally, show login popup
-            loginPopup.style.display = 'block';
-            console.log('Logged out successfully.');
-          })
-          .catch(function (error) {
-            console.error('Logout failed:', error);
-          });
+  // Handle logout button click
+  logoutButton.addEventListener('click', function () {
+    axios.post('/api/logout')
+      .then(function () {
+        // Clear user info from UI
+        usernameDisplay.textContent = '';
+        // Hide logout button and show login/register buttons
+        logoutButton.style.display = 'none';
+        loginButton.style.display = 'block';
+        // Show login popup
+        loginPopup.style.display = 'block';
+        blurBackground.style.display = 'block';
+        console.log('Logged out successfully.');
+      })
+      .catch(function (error) {
+        console.error('Logout failed:', error);
       });
-
+  });
 
   // Function to start recording audio
   function startRecording() {
@@ -207,4 +246,14 @@ const askButton = document.querySelector('#questionForm button[type="submit"]');
       currentAudio = null;
     }
   }
+
+
+    // Open login or registration popup based on link click
+    openLoginPopupLink.addEventListener('click', function (event) {
+      event.preventDefault();
+      loginPopup.style.display = 'block';
+      blurBackground.style.display = 'block';
+  });
+
+
 });
