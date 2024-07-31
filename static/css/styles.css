@@ -43,3 +43,54 @@
 .uk-button-default:hover {
     border-color: lightgrey; /* Darker border on hover */
 }
+
+/* Styles for login/register popup */
+.login-popup {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 20px;
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+}
+
+.login-popup input {
+    margin-bottom: 10px;
+}
+
+/* User profile container */
+#userProfile {
+    display: flex;
+    flex-direction: column; /* Stack items vertically */
+    align-items: flex-end; /* Align items to the end (right side) */
+    gap: 5px; /* Space between username and logout button */
+    position: fixed;
+    top: 10px;
+    right: 10px;
+}
+
+/* Username display */
+.username-display {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+/* Logout button */
+#logoutButton {
+    background-color: #f44336; /* Red background */
+    color: white; /* White text */
+    border: none; /* Remove default border */
+    border-radius: 5px; /* Rounded corners */
+    padding: 5px 10px; /* Padding for better click area */
+    cursor: pointer; /* Pointer cursor on hover */
+    font-size: 14px; /* Consistent font size */
+}
+
+#logoutButton:hover {
+    background-color: #d32f2f; /* Darker red on hover */
+}
+

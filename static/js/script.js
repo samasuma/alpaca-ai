@@ -4,31 +4,112 @@ document.addEventListener('DOMContentLoaded', function () {
   const questionForm = document.getElementById('questionForm');
   const questionInput = document.getElementById('questionInput');
   const micIcon = document.getElementById('micIcon');
-  const askButton = document.querySelector('button[type="submit"]'); // Reference to the "ASK" button
+ // Select the submit button within the questionForm
+const askButton = document.querySelector('#questionForm button[type="submit"]');
+
+  const loginPopup = document.getElementById('loginPopup');
+  const closePopupButton = document.getElementById('closePopup');
+  const toggleFormButton = document.getElementById('toggleForm');
+  const usernameDisplay = document.getElementById('usernameDisplay');
+  
   let mediaRecorder;
   let audioChunks = [];
   let recording = false;
-  let lastAnswer = ''; // Variable to store the last answer
-  let currentAudio = null; // Variable to store the currently playing audio
+  let lastAnswer = '';
+  let currentAudio = null;
+
+  // Login popup logic 
+
+  // Event listener for login/register popup
+  document.getElementById('loginPopup').style.display = 'block';
+
+  closePopupButton.addEventListener('click', function () {
+    loginPopup.style.display = 'none';
+  });
+
+  toggleFormButton.addEventListener('click', function () {
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    if (loginForm.style.display === 'none') {
+      loginForm.style.display = 'block';
+      registerForm.style.display = 'none';
+      toggleFormButton.textContent = 'Register';
+    } else {
+      loginForm.style.display = 'none';
+      registerForm.style.display = 'block';
+      toggleFormButton.textContent = 'Login';
+    }
+  });
+
+  document.getElementById('loginForm').addEventListener('submit', function (event) {
+    event.preventDefault();
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+
+    axios.post('/api/login', { email, password })
+      .then(function (response) {
+        loginPopup.style.display = 'none';
+        usernameDisplay.textContent = `Logged in as ${email}`;
+      })
+      .catch(function (error) {
+        console.error('Login failed:', error);
+      });
+  });
+
+  document.getElementById('registerForm').addEventListener('submit', function (event) {
+    event.preventDefault();
+    const email = document.getElementById('registerEmail').value;
+    const password = document.getElementById('registerPassword').value;
+
+    axios.post('/api/register', { email, password })
+      .then(function (response) {
+        document.getElementById('loginForm').style.display = 'block';
+        document.getElementById('registerForm').style.display = 'none';
+        toggleFormButton.textContent = 'Register';
+      })
+      .catch(function (error) {
+        console.error('Registration failed:', error);
+      });
+  });
 
   // Event listener for startRecordButton click
   startRecordButton.addEventListener('click', function () {
     if (!recording) {
-      stopCurrentAudio(); // Stop any currently playing audio
+      stopCurrentAudio();
       startRecording();
     }
   });
 
+
+  // Main app logic
+
+
   // Event listener for askButton click
   askButton.addEventListener('click', function (event) {
-    event.preventDefault(); // Prevent form submission
+    event.preventDefault();
     if (questionInput.value.trim() !== '') {
-      stopCurrentAudio(); // Stop any currently playing audio
+      stopCurrentAudio();
       askQuestion(questionInput.value.trim());
     } else {
       console.warn('Question input is empty.');
     }
   });
+
+      // Event listener for logoutButton click
+      logoutButton.addEventListener('click', function () {
+        axios.post('/api/logout')
+          .then(function () {
+            // Clear user info from UI
+            usernameDisplay.textContent = '';
+            // Optionally, show login popup
+            loginPopup.style.display = 'block';
+            console.log('Logged out successfully.');
+          })
+          .catch(function (error) {
+            console.error('Logout failed:', error);
+          });
+      });
+
 
   // Function to start recording audio
   function startRecording() {
@@ -37,7 +118,6 @@ document.addEventListener('DOMContentLoaded', function () {
         mediaRecorder = new MediaRecorder(stream);
         audioChunks = [];
 
-        // Add animation class to mic icon and change color
         micIcon.classList.add('recording-indicator');
         micIcon.style.color = 'red';
 
@@ -52,12 +132,10 @@ document.addEventListener('DOMContentLoaded', function () {
           const formData = new FormData();
           formData.append('audio_data', audioBlob, 'audio.wav');
 
-          // Send audio data to backend for speech-to-text
           axios.post('/api/speech-to-text', formData)
             .then(function (response) {
               questionInput.value = response.data.transcript;
-              questionInput.placeholder = ''; 
-              // Automatically send the question to the AI after transcription
+              questionInput.placeholder = '';
               askQuestion(response.data.transcript);
             })
             .catch(function (error) {
@@ -65,7 +143,6 @@ document.addEventListener('DOMContentLoaded', function () {
               transcriptionDiv.textContent = 'Error converting speech to text';
             });
 
-          // Remove animation class from mic icon and reset color
           micIcon.classList.remove('recording-indicator');
           micIcon.style.color = '';
           recording = false;
@@ -73,12 +150,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
         mediaRecorder.start();
 
-        // Automatically stop recording after 5 seconds or if no speech detected
         setTimeout(() => {
           if (mediaRecorder.state === 'recording') {
             mediaRecorder.stop();
           }
-        }, 5000); // Adjust recording duration as needed
+        }, 5000);
 
       })
       .catch(function (error) {
@@ -95,8 +171,7 @@ document.addEventListener('DOMContentLoaded', function () {
       .then(function (response) {
         const answer = response.data.answer;
         transcriptionDiv.innerHTML = `<br><strong>AI:</strong> ${answer}`;
-        lastAnswer = answer; // Store the answer for text-to-speech
-        // Automatically convert the answer to speech
+        lastAnswer = answer;
         convertTextToSpeech(answer);
       })
       .catch(function (error) {
@@ -112,11 +187,10 @@ document.addEventListener('DOMContentLoaded', function () {
         const audioUrl = URL.createObjectURL(response.data);
         const newAudio = new Audio(audioUrl);
 
-        // Stop currently playing audio if any
         stopCurrentAudio();
 
         newAudio.play();
-        currentAudio = newAudio; // Update reference to the new audio
+        currentAudio = newAudio;
 
       })
       .catch(function (error) {

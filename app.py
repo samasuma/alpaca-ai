@@ -18,6 +18,7 @@ client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY')  # Set a secret key for session management
+print(app.secret_key)
 
 # Configure SQLite database
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app_data.db'
@@ -87,6 +88,7 @@ def login():
         local_user = User.query.filter_by(email=email).first()
         if local_user and check_password_hash(local_user.password, password):
             session['user_id'] = local_user.id
+            print(f"Session user_id set to: {session['user_id']}")
             return jsonify({'message': 'Login successful'})
         else:
             return jsonify({'error': 'Invalid email or password'}), 401
@@ -144,7 +146,10 @@ def speech_to_text():
 def ask_question():
     try:
         user_id = session.get('user_id')
+        print(f"User ID from session: {user_id}")
         if not user_id:
+            # Debugging statement to confirm session ID
+            print(f"User ID from session: {user_id}")
             return jsonify({'error': 'User not logged in'}), 401
         
         user_message = request.json.get('question')
