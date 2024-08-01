@@ -3,7 +3,6 @@ document.addEventListener('DOMContentLoaded', function () {
   const transcriptionDiv = document.getElementById('transcription');
   const questionForm = document.getElementById('questionForm');
   const questionInput = document.getElementById('questionInput');
-  const micIcon = document.getElementById('micIcon');
   const askButton = document.querySelector('#questionForm button[type="submit"]');
   const loginPopup = document.getElementById('loginPopup');
   const closePopupButton = document.getElementById('closePopup');
@@ -12,35 +11,43 @@ document.addEventListener('DOMContentLoaded', function () {
   const blurBackground = document.querySelector('.blur-background');
   const logoutButton = document.getElementById('logoutButton');
   const openLoginPopupLink = document.getElementById('openLoginPopup');
-  
+  const loginButton = document.getElementById('loginButton'); // Added for login/logout logic
+  const recordingIndicator = document.querySelector('.recording-indicator');
+
   let mediaRecorder;
   let audioChunks = [];
   let recording = false;
   let lastAnswer = '';
   let currentAudio = null;
 
-
-  // Set initial visibility of buttons
-  function setInitialButtonVisibility() {
-    // This should ideally be based on actual login status; hardcoded for now
-    const isLoggedIn = false; // Set to `true` if the user is logged in
-
-    if (isLoggedIn) {
-        loginButton.style.display = 'none';
-        logoutButton.style.display = 'block';
+  // Function to update UI based on login status
+  function updateUIBasedOnStatus(status) {
+    if (status.logged_in) {
+      usernameDisplay.textContent = `Logged in as ${status.email}`;
+      loginButton.style.display = 'none';
+      logoutButton.style.display = 'block';
+      
+  loginPopup.style.display = 'none';
+  blurBackground.style.display = 'none';
     } else {
-        loginButton.style.display = 'block';
-        logoutButton.style.display = 'none';
-    }
-}
-
-// Initialize the visibility of the login/logout buttons
-setInitialButtonVisibility();
-
-
-  // Show login/register popup and background blur
-  loginPopup.style.display = 'flex';
+      usernameDisplay.textContent = '';
+      loginButton.style.display = 'block';
+      logoutButton.style.display = 'none';
+        // Show login/register popup and background blur
+  loginPopup.style.display = 'block';
   blurBackground.style.display = 'block';
+    }
+  }
+
+  // Check login status on page load
+  axios.get('/api/status')
+    .then(function (response) {
+      updateUIBasedOnStatus(response.data);
+    })
+    .catch(function (error) {
+      console.error('Error checking status:', error);
+    });
+
 
 
   // Close popup by clicking outside
@@ -55,11 +62,11 @@ setInitialButtonVisibility();
     blurBackground.style.display = 'none';
   });
 
-    // Event listener for login button
-    loginButton.addEventListener('click', function () {
-      loginPopup.style.display = 'block';
-      blurBackground.style.display = 'block'; // Show background blur
-    });
+  // Event listener for login button
+  loginButton.addEventListener('click', function () {
+    loginPopup.style.display = 'block';
+    blurBackground.style.display = 'block'; // Show background blur
+  });
 
   // Toggle between login and register forms
   toggleFormButton.addEventListener('click', function () {
@@ -83,12 +90,13 @@ setInitialButtonVisibility();
     const password = document.getElementById('loginPassword').value;
 
     axios.post('/api/login', { email, password })
+      .then(function () {
+        return axios.get('/api/status'); // Check status after login
+      })
       .then(function (response) {
+        updateUIBasedOnStatus(response.data);
         loginPopup.style.display = 'none';
         blurBackground.style.display = 'none';
-        usernameDisplay.textContent = `Logged in as ${email}`;
-        logoutButton.style.display = 'block';
-        loginButton.style.display = 'none';
       })
       .catch(function (error) {
         console.error('Login failed:', error);
@@ -102,7 +110,7 @@ setInitialButtonVisibility();
     const password = document.getElementById('registerPassword').value;
 
     axios.post('/api/register', { email, password })
-      .then(function (response) {
+      .then(function () {
         document.getElementById('loginForm').style.display = 'block';
         document.getElementById('registerForm').style.display = 'none';
         toggleFormButton.textContent = 'Register';
@@ -135,15 +143,12 @@ setInitialButtonVisibility();
   logoutButton.addEventListener('click', function () {
     axios.post('/api/logout')
       .then(function () {
-        // Clear user info from UI
-        usernameDisplay.textContent = '';
-        // Hide logout button and show login/register buttons
-        logoutButton.style.display = 'none';
-        loginButton.style.display = 'block';
-        // Show login popup
+        return axios.get('/api/status'); // Check status after logout
+      })
+      .then(function (response) {
+        updateUIBasedOnStatus(response.data);
         loginPopup.style.display = 'block';
         blurBackground.style.display = 'block';
-        console.log('Logged out successfully.');
       })
       .catch(function (error) {
         console.error('Logout failed:', error);
@@ -157,8 +162,7 @@ setInitialButtonVisibility();
         mediaRecorder = new MediaRecorder(stream);
         audioChunks = [];
 
-        micIcon.classList.add('recording-indicator');
-        micIcon.style.color = 'red';
+        recordingIndicator.style.display = 'flex'; // Show the recording indicator
 
         mediaRecorder.addEventListener('dataavailable', function (event) {
           if (event.data.size > 0) {
@@ -182,8 +186,7 @@ setInitialButtonVisibility();
               transcriptionDiv.textContent = 'Error converting speech to text';
             });
 
-          micIcon.classList.remove('recording-indicator');
-          micIcon.style.color = '';
+            recordingIndicator.style.display = 'none'; // Hide the recording indicator
           recording = false;
         });
 
@@ -247,13 +250,10 @@ setInitialButtonVisibility();
     }
   }
 
-
-    // Open login or registration popup based on link click
-    openLoginPopupLink.addEventListener('click', function (event) {
-      event.preventDefault();
-      loginPopup.style.display = 'block';
-      blurBackground.style.display = 'block';
+  // Open login or registration popup based on link click
+  openLoginPopupLink.addEventListener('click', function (event) {
+    event.preventDefault();
+    loginPopup.style.display = 'block';
+    blurBackground.style.display = 'block';
   });
-
-
 });

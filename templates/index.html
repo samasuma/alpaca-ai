@@ -10,31 +10,47 @@
 
 <body>
 
-  <!-- Main content -->
-  <div class="main-content">
+<!-- Main content -->
+<div class="main-content">
   <div class="uk-section uk-section-large uk-height-viewport">
     <div class="uk-container uk-text-center uk-padding-large">
       <h1 class="uk-heading-medium"><strong>Alpaca</strong> AI</h1>
       <p class="uk-text-lead">An AI-powered app for everything!</p>
     </div>
 
-      <!-- AI Prompt Input content -->
+    <!-- AI Prompt Input content -->
     <div class="uk-container uk-text-center">
-      <div class="form-container uk-flex uk-flex-middle uk-flex-center uk-margin">
-        <form id="questionForm" class="uk-flex uk-flex-middle">
-          <input id="questionInput" class="uk-input uk-margin-small-right" type="text" placeholder="Type your question...">
-          <button id="startRecord" class="uk-button uk-button-primary uk-margin-small-right" type="button">
-            <span id="micIcon" uk-icon="icon: microphone; ratio: 1.5"></span>
-          </button>
-          <button type="submit" class="uk-button uk-button-default">ASK</button>
-        </form>
+      <form id="questionForm" class="uk-flex uk-flex-middle">
+      <div class="uk-inline">
+        <button id="startRecord" class="uk-form-icon uk-form-icon-flip" type="button" uk-icon="icon: microphone; ratio: 1.5">
+          <div class="recording-indicator">
+            <div class="sound-wave">
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
+              <div></div>
+            </div>
+          </div>
+        </button>
+        <input id="questionInput" class="uk-input" type="text" placeholder="Type your question...">
       </div>
-      <div id="transcription" class="uk-margin"></div>
+      <button type="submit" class="uk-button uk-button-default">ASK</button>
+    </form>
+   
     </div>
+
     <div class="uk-container uk-text-center uk-padding">
-      <div id="answer" class="uk-flex uk-flex-center uk-flex-middle uk-padding uk-width-expand"></div>
+      <div id="answer" class="uk-flex uk-flex-center uk-flex-middle uk-padding uk-width-expand">
+        <div class="transcription-container">
+          <div id="transcription" class="uk-margin"></div>
+          </div>
+      </div>
     </div>
   </div>
+</div>
+
+
 
   <!-- Popup Background Blur -->
   <div id="backgroundBlur" class="blur-background"></div>
@@ -75,7 +91,7 @@
 
 
 
-  <!-- User Profile -->
+  <!-- User Profile --> 
   <div id="userProfile">
     <div id="usernameDisplay" class="username-display"></div> 
     <button id="logoutButton" class="uk-icon-button uk-button-default" uk-icon="sign-out">Logout </button>
@@ -87,15 +103,6 @@
       <p>Enjoying the app? <a href="#" id="openLoginPopup">Sign up or Login</a> to save your history and get personalized recommendations!</p>
   </footer>
 
-
-  <!-- Call to Action Footer 
-  <footer class="uk-section uk-section-muted">
-    <div class="uk-container uk-text-center">
-      <div id="callToAction" class="call-to-action">
-        <p>Enjoying the app? <a href="#" id="openLoginPopup">Sign up or Login</a> to save your history and get personalized recommendations!</p>
-      </div>
-    </div>
-  </footer> -->
   </div>
 
   <script src="https://unpkg.com/axios/dist/axios.min.js"></script>

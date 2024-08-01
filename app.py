@@ -142,6 +142,16 @@ def speech_to_text():
         if os.path.exists(converted_audio_path):
             os.remove(converted_audio_path)
 
+@app.route('/api/status', methods=['GET'])
+def status():
+    user_id = session.get('user_id')
+    if user_id:
+        user = User.query.get(user_id)
+        if user:
+            return jsonify({'logged_in': True, 'email': user.email})
+    return jsonify({'logged_in': False})
+
+
 @app.route('/api/ask-question', methods=['POST'])
 def ask_question():
     try:
