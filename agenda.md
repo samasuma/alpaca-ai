@@ -1,38 +1,79 @@
-# Agenda
+# Agenda for Tomorrow
 
-## Review Current Implementation
-- **Check /api/login Endpoint**: Ensure it correctly verifies user credentials against Firebase and locally against the database.
-- **Confirm Session Setup**: Verify that `session['user_id']` is being set correctly upon successful authentication.
+## 1. Allow Guest Users to Use the App Without Registering
 
-## Debugging and Testing
-- **Test /api/login Endpoint**: Use curl or a tool like Postman to test the login endpoint with valid and invalid credentials.
-- **Check Session Data**: After a successful login, inspect the session data to confirm `session['user_id']` is set correctly.
+### Objective
+Enable guest users to use the app without registering, but limit their interactions to a few prompts.
 
-## Adjustment and Fixes
-- **Set `session['user_id']`**: Ensure that `session['user_id']` is set immediately after successful authentication, before returning the response.
-- **Handle Errors**: Implement error handling for cases where authentication fails (invalid credentials, server errors).
+### Steps
+- **Identify Guest Sessions**: Use session management to distinguish between guest users and registered users.
+- **Handle Guest Prompts**: Allow guest users to interact with the app for a limited number of prompts (e.g., 3).
+- **Show Call to Action**:
+  - After the third prompt, display a call to action at the bottom of the transcription div.
+  - Consider alternatives like showing a registration/signup popup or an alert with a call to action message.
 
-## Update Other Endpoints
-- **Secure Endpoints**: Ensure endpoints that require user authentication (`/api/ask-question`, `/api/logout`, etc.) check for `session['user_id']` to determine if the user is authenticated.
-- **Implement Authorization**: If necessary, implement authorization checks to ensure users can only access resources they are authorized for.
+## 2. Implement UI for Guest Users
 
-## Documentation and Best Practices
-- **Document Session Management**: Update or create documentation on how session management is handled in your Flask application.
-- **Security Best Practices**: Review Flask and session management best practices to ensure your application is secure.
+### Objective
+Update the frontend to handle guest user interactions and display appropriate prompts.
 
-## Testing and Deployment
-- **Unit Testing**: Write or update unit tests to cover session management and authentication functionality.
-- **Deployment**: Deploy changes to a staging environment for further testing before deploying to production.
+### Steps
+- **Modify Transcription Div**: Add logic to insert a call to action after a certain number of prompts.
+- **Create Call to Action Message**:
+  - Design a `<p>` element or a modal to encourage registration after reaching the interaction limit.
+  - Implement an alert that pops up after the interaction limit is reached.
 
-## Monitoring and Error Handling
-- **Monitoring**: Set up monitoring for session-related errors or issues.
-- **Error Handling**: Implement robust error handling and logging to capture and diagnose session-related issues in production.
+## 3. Handle UI Alerts for Authentication and Registration Errors
 
-## Review and Refactor
-- **Code Review**: Conduct a code review to ensure changes are implemented correctly and follow best practices.
-- **Refactor**: Refactor code as necessary to improve clarity, performance, or security.
+### Objective
+Use UIkit JavaScript alerts to inform users when they cannot authenticate or if their email is already registered.
 
-## Next Steps
-- **Prepare**: Ensure you have access to the necessary tools and environments (local development, staging, production).
-- **Execute**: Follow the agenda step-by-step, focusing on understanding the current state, making necessary adjustments, and thoroughly testing each change.
-- **Document**: Document any changes or updates made during the process for future reference and team collaboration.
+### Steps
+- **Integrate UIkit Alerts**: Use UIkit's JavaScript alert system to display error messages.
+- **Update Backend**: Ensure that the backend sends appropriate error messages when authentication or registration fails.
+- **Frontend Handling**:
+  - Capture error messages from the backend and display them using UIkit alerts.
+
+## 4. Manage Guest Data Without Persisting It
+
+### Objective
+Handle guest user data temporarily without persisting it in the database.
+
+### Steps
+- **Temporary Data Storage**: Use session storage to temporarily hold chat history for guest users.
+- **Clear Data on Logout/Exit**: Ensure that guest data is cleared when the user leaves the session or logs out.
+
+# Detailed Tasks
+
+## Backend Modifications
+
+1. **Identify and Handle Guest Sessions**:
+   - Modify `/api/ask-question` to handle guest sessions.
+   - Track the number of interactions for guest users in the session.
+
+2. **Send Authentication and Registration Errors to Frontend**:
+   - Update `/api/register` and `/api/login` endpoints to return specific error messages.
+   - Ensure these messages are structured for easy parsing on the frontend.
+
+## Frontend Modifications
+
+1. **Transcription Div Updates**:
+   - Add logic to count the number of prompts by guest users.
+   - Insert a call to action message after the interaction limit is reached.
+
+2. **UIkit Alerts**:
+   - Capture error responses from the backend.
+   - Use UIkit to display alerts for authentication and registration errors.
+
+3. **Session Management for Guests**:
+   - Use JavaScript to handle session storage for guest chat history.
+   - Ensure data is cleared appropriately.
+
+## Testing and Validation
+
+- **Test Guest User Flow**:
+  - Verify that guest users can interact with the app without registering.
+  - Ensure that the call to action message appears after the set number of prompts.
+
+- **Test Error Handling**:
+  - Simulate authentication and registration errors to verify that UIkit alerts are displayed correctly.
